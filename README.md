@@ -8,6 +8,13 @@ This Python script allows you to download public photos and videos from an Insta
 - Python 3.x
 - `instaloader` library
 
+## Download
+Download Letest Releases
+
+v1.0.0 [Download zip](https://github.com/debojitsantra/instad/archive/refs/tags/1.0.0.zip)
+| [Download tar.gz](https://github.com/debojitsantra/instad/archive/refs/tags/1.0.0.tar.gz)
+
+
 ## Installation
 
 1. Clone the repository or download the script directly.
