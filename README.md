@@ -1,4 +1,4 @@
-# Instad
+# Instad - Instagram Downloader
 
 This Python script allows you to download public photos and videos from an Instagram account. It uses the `instaloader` library to fetch media files from Instagram.
 
