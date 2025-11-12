@@ -1,13 +1,13 @@
 
 
-**Instad** is a Python-based media downloader that allows you to easily fetch photos, videos, and audio from multiple platforms â€” including **Instagram**, **YouTube**, **Soundgasm**, **Reddit**, and **Facebook**.  
+**Instad** is a Python-based media downloader that allows you to easily fetch photos, videos, and audio from multiple platforms ” including **Instagram**, **YouTube**, **Soundgasm**, **Reddit**, and **Facebook**.  
 It uses `instaloader` and `yt-dlp` under the hood to deliver reliable, high-quality downloads.
 
 ---
 
 ##  **Features**
 - Download public Instagram posts and profiles  
-- YouTube downloads with quality selection (Audio, 360pâ€“1080p, Best)  
+- YouTube downloads with quality selection (Audio, 360p, 1080p, Best)  
 - Soundgasm downloads automatically converted to MP3  
 - Facebook and Reddit media downloads at best available quality  
 - Detects private Instagram profiles and handles them safely  
@@ -55,7 +55,7 @@ python instad.py account_name limit
 ```
 Example:
 ```bash
-python instad.py tech_burner 10
+python instad.py mehdi_sadaghdar 10
 ```
 Downloads the 10 latest public posts from the specified account.
 
@@ -73,9 +73,9 @@ See the [LICENSE](LICENSE) file for details.
 ---
 
 ## **Acknowledgments**
-- [Instaloader](https://instaloader.github.io/) â€“ Instagram media extraction  
-- [yt-dlp](https://github.com/yt-dlp/yt-dlp) â€“ Multi-platform downloader  
-- [CustomTkinter](https://github.com/TomSchimansky/CustomTkinter) â€“ Modern GUI toolkit for Python
+- [Instaloader](https://instaloader.github.io/) Instagram media extraction  
+- [yt-dlp](https://github.com/yt-dlp/yt-dlp)  Multi-platform downloader  
+- [CustomTkinter](https://github.com/TomSchimansky/CustomTkinter)  Modern GUI toolkit for Python
 
 ---
 
@@ -87,7 +87,7 @@ Open an issue or submit a pull request on [GitHub](https://github.com/debojitsan
 
 ## **Disclaimer**
 This tool is intended for **personal, educational, and fair-use purposes only**.  
-Please respect creatorsâ€™ rights and platform terms of service when downloading content.
+Please respect creators rights and platform terms of service when downloading content.
 
 ---
 
