@@ -57,14 +57,9 @@ Follow the on-screen instructions to select download type, format, and quality.
 ### Command-Line (Legacy)
 For older versions:
 ```bash
-python instad.py account_name limit
-```
-Example:
-```bash
+unset DISPLAY
 python instad.py tech_burner 10
 ```
-Downloads the 10 latest public posts from the specified account.
-
 ---
 
 ## Instagram Login (Optional)
