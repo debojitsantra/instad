@@ -98,19 +98,7 @@ See the [LICENSE](LICENSE) file for details.
 - [yt-dlp](https://github.com/yt-dlp/yt-dlp) : Multi-platform downloader  
 - [CustomTkinter](https://github.com/TomSchimansky/CustomTkinter) : Modern GUI toolkit for Python
 
----
-
-## Contributing
-Contributions, suggestions, and feature ideas are always welcome.  
-Open an issue or submit a pull request on [GitHub](https://github.com/debojitsantra/instad).
-
----
 
 ## Disclaimer
 This tool is intended for personal, educational, and fair-use purposes only.  
 Please respect creators rights and platform terms of service when downloading content.
-
----
-
-## Author
-[Debojit Santra](https://github.com/debojitsantra)
