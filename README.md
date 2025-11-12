@@ -1,62 +1,95 @@
-# Instad - Instagram Downloader
-
-This Python script allows you to download public photos and videos from an Instagram account. It uses the `instaloader` library to fetch media files from Instagram.
-
-## Prerequisites
-
-- Python 3.x
-- `instaloader` library
-
-## Download
-Download Letest Releases
-
-v1.0.0 [Download zip](https://github.com/debojitsantra/instad/archive/refs/tags/1.0.0.zip)
-| [Download tar.gz](https://github.com/debojitsantra/instad/archive/refs/tags/1.0.0.tar.gz)
 
 
-## Installation
+**Instad** is a Python-based media downloader that allows you to easily fetch photos, videos, and audio from multiple platforms â€” including **Instagram**, **YouTube**, **Soundgasm**, **Reddit**, and **Facebook**.  
+It uses `instaloader` and `yt-dlp` under the hood to deliver reliable, high-quality downloads.
 
-1. Clone the repository or download the archived script from above.
-2. Install the required dependencies by running the following command:
+---
 
-   ```shell
+##  **Features**
+- Download public Instagram posts and profiles  
+- YouTube downloads with quality selection (Audio, 360pâ€“1080p, Best)  
+- Soundgasm downloads automatically converted to MP3  
+- Facebook and Reddit media downloads at best available quality  
+- Detects private Instagram profiles and handles them safely  
+- Modern GUI built with `customtkinter`
+
+---
+
+## **Prerequisites**
+- Python 3.8 or later  
+- `ffmpeg` (for media conversion)  
+- Required Python libraries listed in `requirements.txt`
+
+---
+
+##  **Installation**
+
+1. Clone the repository or download the latest release.  
+2. Navigate into the project folder.  
+3. Install all dependencies:
+
+   ```bash
    pip install -r requirements.txt
    ```
-## Usage
 
-1. Open a terminal or command prompt.
-2. Navigate to the directory where the script is located.
-3. Run the script using the following command:
+---
 
-   ```shell
-   python instad.py account_name limit
-   ```
+##  **Usage**
 
-   Replace `account_name` and `limit` with the appropriate values. For example:
+### GUI Mode
+To launch the graphical version:
+```bash
+python instad.py
+```
+- Termux Only
+```bash
+termux-x11 :0 & python instad.py
+```
+Enter a URL from any supported site and start downloading instantly.  
+If no display is detected (e.g. Termux), it automatically switches to terminal mode.
 
-   ```shell
-   python instad.py tech_burner 10
-   ```
+### Command-Line Mode (Legacy)
+For older versions:
+```bash
+python instad.py account_name limit
+```
+Example:
+```bash
+python instad.py tech_burner 10
+```
+Downloads the 10 latest public posts from the specified account.
 
-Make sure you have the necessary permissions to write files to the specified destination folder.
+---
 
-`The downloaded files will be stored in the folder where the main script is located`
-## License
+## **Output**
+All downloaded media is stored in the folder where the script is located (or `/downloads` if running from GUI mode).
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more information.
+---
 
-## Acknowledgments
+## **License**
+This project is licensed under the **MIT License**.  
+See the [LICENSE](LICENSE) file for details.
 
-- [instaloader](https://instaloader.github.io/) - The library used for fetching Instagram media.
+---
 
-## Contributing
+## **Acknowledgments**
+- [Instaloader](https://instaloader.github.io/) â€“ Instagram media extraction  
+- [yt-dlp](https://github.com/yt-dlp/yt-dlp) â€“ Multi-platform downloader  
+- [CustomTkinter](https://github.com/TomSchimansky/CustomTkinter) â€“ Modern GUI toolkit for Python
 
-Contributions are welcome! If you have any suggestions, bug reports, or feature requests, please open an issue or submit a pull request.
+---
 
-## Disclaimer
+## **Contributing**
+Contributions, suggestions, and feature ideas are always welcome.  
+Open an issue or submit a pull request on [GitHub](https://github.com/debojitsantra/instad).
 
-This script is intended for personal use and should be used responsibly. Respect the privacy and rights of others when downloading media files.
+---
 
-## Authors
+## **Disclaimer**
+This tool is intended for **personal, educational, and fair-use purposes only**.  
+Please respect creatorsâ€™ rights and platform terms of service when downloading content.
 
-- [Debojit Santra](https://github.com/debojitsantra)
+---
+
+##  **Author**
+**[Debojit Santra](https://github.com/debojitsantra)**
