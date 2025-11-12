@@ -1,53 +1,117 @@
 import os
-import argparse
-import instaloader
-from tqdm import tqdm
+import tkinter as tk
+from tkinter import filedialog, messagebox, ttk
+import threading
+import yt_dlp
 
-def download_media(account, limit):
-    try:
-        loader = instaloader.Instaloader()
-        profile = instaloader.Profile.from_username(loader.context, account)
-    except instaloader.exceptions.ProfileNotExistsException:
-        print(f"The account '{account}' does not exist.")
-        return
-    except instaloader.exceptions.ConnectionException:
-        print("Unable to establish a connection. Please check your internet connection.")
-        return
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return
+class MediaDownloaderApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Universal Media Downloader")
+        self.root.geometry("480x360")
+        self.root.resizable(False, False)
 
-    save_path = os.path.dirname(os.path.abspath(__file__))
-    os.makedirs(save_path, exist_ok=True)
+        # Variables
+        self.url_var = tk.StringVar()
+        self.save_path = tk.StringVar(value=os.getcwd())
+        self.quality_var = tk.StringVar(value="Best")
 
-    count = 0
-    with tqdm(total=limit, ncols=80, bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}') as pbar:
-        for post in profile.get_posts():
-            if count >= limit:
-                break
+        # --- UI Layout ---
+        tk.Label(root, text="Enter Media URL:", font=("Arial", 12)).pack(pady=10)
+        tk.Entry(root, textvariable=self.url_var, width=50).pack(pady=5)
 
-            try:
-                loader.download_post(post, target=save_path)
-                count += 1
-                pbar.update(1)
-            except instaloader.exceptions.InstaloaderException as e:
-                print(f"Error downloading post: {post.url}")
-                print(e)
-                pbar.update(1)  # Skip the failed post
+        tk.Label(root, text="Save Folder:", font=("Arial", 12)).pack(pady=5)
+        path_frame = tk.Frame(root)
+        path_frame.pack()
+        tk.Entry(path_frame, textvariable=self.save_path, width=35).pack(side=tk.LEFT, padx=5)
+        tk.Button(path_frame, text="Browse", command=self.browse_folder).pack(side=tk.LEFT)
 
-def main():
-    parser = argparse.ArgumentParser(description='Instagram media downloader')
-    parser.add_argument('account', type=str, help='Instagram account username')
-    parser.add_argument('limit', type=int, help='Number of posts to download')
+        tk.Label(root, text="Select Quality:", font=("Arial", 12)).pack(pady=5)
+        quality_options = ["Audio Only (mp3)", "360p", "480p", "720p", "1080p", "Best"]
+        ttk.Combobox(root, textvariable=self.quality_var, values=quality_options, state="readonly", width=25).pack(pady=5)
 
-    args = parser.parse_args()
+        self.progress = ttk.Progressbar(root, orient="horizontal", length=400, mode="determinate")
+        self.progress.pack(pady=15)
 
-    try:
-        download_media(args.account, args.limit)
-        print('Download completed successfully.')
-    except Exception as e:
-        print('An error occurred during the download process.')
-        print(e)
+        self.status_label = tk.Label(root, text="", font=("Arial", 10), fg="blue")
+        self.status_label.pack()
 
-if __name__ == '__main__':
-    main()
+        tk.Button(root, text="Download", command=self.start_download, width=20, bg="#0078D7", fg="white").pack(pady=10)
+
+    def browse_folder(self):
+        folder = filedialog.askdirectory()
+        if folder:
+            self.save_path.set(folder)
+
+    def start_download(self):
+        url = self.url_var.get().strip()
+        save_dir = self.save_path.get().strip()
+
+        if not url:
+            messagebox.showerror("Error", "Please enter a valid URL.")
+            return
+        if not os.path.isdir(save_dir):
+            messagebox.showerror("Error", "Invalid save folder.")
+            return
+
+        self.status_label.config(text="Starting download...")
+        self.progress['value'] = 0
+
+        thread = threading.Thread(target=self.download_media, args=(url, save_dir, self.quality_var.get()))
+        thread.start()
+
+    def get_format(self, quality):
+        """Map dropdown quality to yt-dlp format string."""
+        formats = {
+            "Audio Only (mp3)": "bestaudio/best",
+            "360p": "bestvideo[height<=360]+bestaudio/best[height<=360]",
+            "480p": "bestvideo[height<=480]+bestaudio/best[height<=480]",
+            "720p": "bestvideo[height<=720]+bestaudio/best[height<=720]",
+            "1080p": "bestvideo[height<=1080]+bestaudio/best[height<=1080]",
+            "Best": "bestvideo+bestaudio/best"
+        }
+        return formats.get(quality, "bestvideo+bestaudio/best")
+
+    def download_media(self, url, save_dir, quality):
+        try:
+            def progress_hook(d):
+                if d['status'] == 'downloading':
+                    total = d.get('total_bytes') or d.get('total_bytes_estimate')
+                    downloaded = d.get('downloaded_bytes', 0)
+                    if total:
+                        percent = downloaded / total * 100
+                        self.progress['value'] = percent
+                    self.status_label.config(text=f"Downloading... {int(self.progress['value'])}%")
+                elif d['status'] == 'finished':
+                    self.progress['value'] = 100
+                    self.status_label.config(text="Download complete!")
+
+            ydl_opts = {
+                'outtmpl': os.path.join(save_dir, '%(title)s.%(ext)s'),
+                'progress_hooks': [progress_hook],
+                'quiet': True,
+                'noprogress': True,
+                'format': self.get_format(quality),
+            }
+
+            # Convert to MP3 if audio only
+            if quality == "Audio Only (mp3)":
+                ydl_opts['postprocessors'] = [{
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': 'mp3',
+                    'preferredquality': '192',
+                }]
+
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([url])
+
+            messagebox.showinfo("Success", "Download completed successfully!")
+        except Exception as e:
+            messagebox.showerror("Error", f"Download failed:\n{e}")
+            self.status_label.config(text="Error occurred.")
+
+# --- Run GUI ---
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = MediaDownloaderApp(root)
+    root.mainloop()
