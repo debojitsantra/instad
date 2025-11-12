@@ -55,19 +55,21 @@ If no display is detected (e.g. Termux), it automatically switches to terminal m
 If running on a system without a graphical interface, the tool will start in text mode automatically.  
 Follow the on-screen instructions to select download type, format, and quality.
 
-### Command-Line (Legacy)
+#### Command-Line (Legacy)
 For older versions:
 ```bash
 unset DISPLAY
-python instad.py tech_burner 10
+python instad.py
 ```
-## Reset GUI
+#### Reset GUI
+> “Use this if you accidentally disabled your display or want to return to graphical mode.”
+
 ```bash
 export DISPLAY=:0
 ```
 ---
 
-## Instagram Login (Optional)
+##### Instagram Login (Optional)
 If you encounter rate limits or want to download from private accounts you follow, create a session file:
 ```bash
 instaloader -l your_username
