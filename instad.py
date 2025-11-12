@@ -4,9 +4,17 @@ import threading
 import yt_dlp
 import instaloader
 from tqdm import tqdm
-import customtkinter as ctk
-from tkinter import messagebox
+import sys
+try:
+    import customtkinter as ctk
+    from tkinter import messagebox
+    GUI_AVAILABLE = True
+except Exception:
+    GUI_AVAILABLE = False
 
+
+
+# Site Detection
 
 def detect_site(url):
     url = url.lower()
@@ -15,7 +23,7 @@ def detect_site(url):
     elif "soundgasm.net" in url:
         return "soundgasm"
     elif "instagram.com" in url:
-        if re.search(r"instagram\.com/[^/]+/?$", url):
+        if re.search(r"instagram\\.com/[^/]+/?$", url):
             return "instagram_profile"
         return "instagram_post"
     elif "facebook.com" in url:
@@ -26,8 +34,10 @@ def detect_site(url):
         return "unknown"
 
 
-#download
-def download_youtube(url, save_dir, quality, log_callback):
+
+# Downloader Functions
+
+def download_youtube(url, save_dir, quality, log_callback=print):
     quality_map = {
         "Audio Only (mp3)": "bestaudio/best",
         "360p": "bestvideo[height<=360]+bestaudio/best[height<=360]",
@@ -57,7 +67,7 @@ def download_youtube(url, save_dir, quality, log_callback):
     log_callback("YouTube download complete!\n")
 
 
-def download_best(url, save_dir, log_callback):
+def download_best(url, save_dir, log_callback=print):
     ydl_opts = {
         "outtmpl": os.path.join(save_dir, "%(title)s.%(ext)s"),
         "format": "bestvideo+bestaudio/best",
@@ -68,7 +78,7 @@ def download_best(url, save_dir, log_callback):
     log_callback("Download complete!\n")
 
 
-def download_soundgasm(url, save_dir, log_callback):
+def download_soundgasm(url, save_dir, log_callback=print):
     ydl_opts = {
         "outtmpl": os.path.join(save_dir, "%(title)s.%(ext)s"),
         "format": "bestaudio/best",
@@ -85,7 +95,7 @@ def download_soundgasm(url, save_dir, log_callback):
     log_callback("Soundgasm audio saved as MP3!\n")
 
 
-def download_instagram_profile(username, save_dir, log_callback):
+def download_instagram_profile(username, save_dir, log_callback=print):
     loader = instaloader.Instaloader(dirname_pattern=save_dir)
     try:
         profile = instaloader.Profile.from_username(loader.context, username)
@@ -120,7 +130,54 @@ def download_instagram_profile(username, save_dir, log_callback):
     log_callback("Profile media downloaded!\n")
 
 
-#gui
+
+# Terminal Interface (TUI)
+
+def run_tui():
+    print("\n=== Universal Media Downloader (TUI Mode) ===")
+    url = input("Enter media URL: ").strip()
+    save_dir = os.path.join(os.getcwd(), "downloads")
+    os.makedirs(save_dir, exist_ok=True)
+
+    site = detect_site(url)
+    print(f"Detected site: {site}")
+
+    try:
+        if site == "youtube":
+            print("\nSelect quality:")
+            print("1) Audio Only (mp3)")
+            print("2) 360p")
+            print("3) 480p")
+            print("4) 720p")
+            print("5) 1080p")
+            print("6) Best")
+            q_choice = input("Enter choice: ").strip()
+            q_map = {
+                "1": "Audio Only (mp3)",
+                "2": "360p",
+                "3": "480p",
+                "4": "720p",
+                "5": "1080p",
+                "6": "Best"
+            }
+            quality = q_map.get(q_choice, "Best")
+            download_youtube(url, save_dir, quality)
+        elif site == "soundgasm":
+            download_soundgasm(url, save_dir)
+        elif site in ("facebook", "reddit", "instagram_post"):
+            download_best(url, save_dir)
+        elif site == "instagram_profile":
+            username = url.split("/")[-1] or url.split("/")[-2]
+            download_instagram_profile(username, save_dir)
+        else:
+            print("Unsupported site or invalid URL.")
+    except Exception as e:
+        print(f"Error: {e}")
+
+
+
+# GUI
+
 class DownloaderApp(ctk.CTk):
     def __init__(self):
         super().__init__()
@@ -133,22 +190,19 @@ class DownloaderApp(ctk.CTk):
         self.save_path = os.path.join(os.getcwd(), "downloads")
         self.quality_var = ctk.StringVar(value="Best")
 
-        #layout
         self._build_ui()
 
     def _build_ui(self):
         ctk.CTkLabel(self, text="Media URL", font=("Arial", 14)).pack(pady=(15, 5))
         ctk.CTkEntry(self, textvariable=self.url_var, width=500, height=35).pack(pady=5)
-
         ctk.CTkLabel(self, text=f"Save Folder: {self.save_path}", font=("Arial", 12)).pack(pady=5)
-
         ctk.CTkLabel(self, text="Quality (YouTube only):", font=("Arial", 12)).pack(pady=5)
+
         options = ["Audio Only (mp3)", "360p", "480p", "720p", "1080p", "Best"]
         self.quality_menu = ctk.CTkOptionMenu(self, variable=self.quality_var, values=options)
         self.quality_menu.pack(pady=5)
 
         ctk.CTkButton(self, text="Start Download", command=self.start_download, width=200, height=40).pack(pady=10)
-
         self.log_box = ctk.CTkTextbox(self, width=550, height=220, font=("Consolas", 11))
         self.log_box.pack(pady=10)
         self.log("Ready.\n")
@@ -162,8 +216,7 @@ class DownloaderApp(ctk.CTk):
         if not url:
             messagebox.showerror("Error", "Please enter a URL.")
             return
-
-        self.log(f" Detected site: {detect_site(url)}")
+        self.log(f"Detected site: {detect_site(url)}")
         thread = threading.Thread(target=self.download_handler, args=(url,))
         thread.start()
 
@@ -180,11 +233,17 @@ class DownloaderApp(ctk.CTk):
                 username = url.split("/")[-1] or url.split("/")[-2]
                 download_instagram_profile(username, self.save_path, self.log)
             else:
-                self.log(" Unsupported site or invalid URL.")
+                self.log("Unsupported site or invalid URL.")
         except Exception as e:
-            self.log(f" Error: {e}\n")
+            self.log(f"Error: {e}\n")
 
+
+
+# Entry Point
 
 if __name__ == "__main__":
-    app = DownloaderApp()
-    app.mainloop()
+    if not GUI_AVAILABLE or not os.environ.get("DISPLAY"):
+        run_tui()
+    else:
+        app = DownloaderApp()
+        app.mainloop()
