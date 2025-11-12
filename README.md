@@ -47,6 +47,7 @@ To launch the graphical version:
 ```bash
 python instad.py
 ```
+
 Enter a URL from any supported site and start downloading instantly.  
 If no display is detected (e.g. Termux), it automatically switches to terminal mode.
 
@@ -59,6 +60,10 @@ For older versions:
 ```bash
 unset DISPLAY
 python instad.py tech_burner 10
+```
+## Reset GUI
+```bash
+export DISPLAY=:0
 ```
 ---
 
