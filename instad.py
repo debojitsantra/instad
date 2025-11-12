@@ -5,16 +5,15 @@ import yt_dlp
 import instaloader
 from tqdm import tqdm
 import sys
+
+# Try importing GUI modules
 try:
     import customtkinter as ctk
-    from tkinter import messagebox
+    from tkinter import messagebox, filedialog
     GUI_AVAILABLE = True
 except Exception:
     GUI_AVAILABLE = False
 
-
-
-# Site Detection
 
 def detect_site(url):
     url = url.lower()
@@ -23,7 +22,7 @@ def detect_site(url):
     elif "soundgasm.net" in url:
         return "soundgasm"
     elif "instagram.com" in url:
-        if re.search(r"instagram\\.com/[^/]+/?$", url):
+        if re.search(r"instagram\.com/[^/]+/?$", url):
             return "instagram_profile"
         return "instagram_post"
     elif "facebook.com" in url:
@@ -34,10 +33,7 @@ def detect_site(url):
         return "unknown"
 
 
-
-# Downloader Functions
-
-def download_youtube(url, save_dir, quality, log_callback=print):
+def download_youtube(url, save_dir, quality, progress_callback=None, log_callback=print):
     quality_map = {
         "Audio Only (mp3)": "bestaudio/best",
         "360p": "bestvideo[height<=360]+bestaudio/best[height<=360]",
@@ -46,12 +42,23 @@ def download_youtube(url, save_dir, quality, log_callback=print):
         "1080p": "bestvideo[height<=1080]+bestaudio/best[height<=1080]",
         "Best": "bestvideo+bestaudio/best"
     }
-
     fmt = quality_map.get(quality, "bestvideo+bestaudio/best")
+
+    def hook(d):
+        if d['status'] == 'downloading' and progress_callback:
+            total = d.get('total_bytes') or d.get('total_bytes_estimate', 0)
+            downloaded = d.get('downloaded_bytes', 0)
+            if total:
+                progress_callback(downloaded / total * 100)
+        elif d['status'] == 'finished' and progress_callback:
+            progress_callback(100)
+
     ydl_opts = {
         "outtmpl": os.path.join(save_dir, "%(title)s.%(ext)s"),
         "format": fmt,
-        "quiet": True
+        "quiet": True,
+        "progress_hooks": [hook],
+        "extractor_args": {"youtube": ["player_client=default"]}
     }
 
     if quality == "Audio Only (mp3)":
@@ -61,24 +68,44 @@ def download_youtube(url, save_dir, quality, log_callback=print):
             "preferredquality": "192",
         }]
 
-    log_callback(f"▶ Downloading YouTube in {quality} quality...")
+    log_callback(f"Downloading YouTube in {quality} quality...")
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([url])
-    log_callback("YouTube download complete!\n")
+    log_callback("YouTube download complete.")
 
 
-def download_best(url, save_dir, log_callback=print):
+def download_best(url, save_dir, progress_callback=None, log_callback=print):
+    def hook(d):
+        if d['status'] == 'downloading' and progress_callback:
+            total = d.get('total_bytes') or d.get('total_bytes_estimate', 0)
+            downloaded = d.get('downloaded_bytes', 0)
+            if total:
+                progress_callback(downloaded / total * 100)
+        elif d['status'] == 'finished' and progress_callback:
+            progress_callback(100)
+
     ydl_opts = {
         "outtmpl": os.path.join(save_dir, "%(title)s.%(ext)s"),
         "format": "bestvideo+bestaudio/best",
-        "quiet": True
+        "quiet": True,
+        "progress_hooks": [hook]
     }
+
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([url])
-    log_callback("Download complete!\n")
+    log_callback("Download complete.")
 
 
-def download_soundgasm(url, save_dir, log_callback=print):
+def download_soundgasm(url, save_dir, progress_callback=None, log_callback=print):
+    def hook(d):
+        if d['status'] == 'downloading' and progress_callback:
+            total = d.get('total_bytes') or d.get('total_bytes_estimate', 0)
+            downloaded = d.get('downloaded_bytes', 0)
+            if total:
+                progress_callback(downloaded / total * 100)
+        elif d['status'] == 'finished' and progress_callback:
+            progress_callback(100)
+
     ydl_opts = {
         "outtmpl": os.path.join(save_dir, "%(title)s.%(ext)s"),
         "format": "bestaudio/best",
@@ -87,16 +114,35 @@ def download_soundgasm(url, save_dir, log_callback=print):
             "preferredcodec": "mp3",
             "preferredquality": "192",
         }],
-        "quiet": True
+        "quiet": True,
+        "progress_hooks": [hook]
     }
+
     log_callback("Downloading Soundgasm audio (auto converting to MP3)...")
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([url])
-    log_callback("Soundgasm audio saved as MP3!\n")
+    log_callback("Soundgasm audio saved as MP3.")
+
+
+def load_instagram_session(loader, log_callback=print):
+    """Automatically loads saved Instagram session if available."""
+    session_files = [f for f in os.listdir('.') if f.startswith("session-")]
+    if session_files:
+        try:
+            session_file = session_files[0]
+            username = session_file.replace("session-", "")
+            loader.load_session_from_file(username)
+            log_callback(f"Loaded Instagram session from {session_file}")
+            return True
+        except Exception as e:
+            log_callback(f"Failed to load session: {e}")
+    return False
 
 
 def download_instagram_profile(username, save_dir, log_callback=print):
     loader = instaloader.Instaloader(dirname_pattern=save_dir)
+    session_loaded = load_instagram_session(loader, log_callback)
+
     try:
         profile = instaloader.Profile.from_username(loader.context, username)
     except instaloader.exceptions.ProfileNotExistsException:
@@ -106,8 +152,8 @@ def download_instagram_profile(username, save_dir, log_callback=print):
         log_callback("Connection error. Check your internet.")
         return
 
-    if profile.is_private:
-        log_callback(f"🔒 The profile '{username}' is private. Cannot download.")
+    if profile.is_private and not session_loaded:
+        log_callback(f"The profile '{username}' is private. Login required.")
         return
 
     total_posts = profile.mediacount
@@ -127,18 +173,14 @@ def download_instagram_profile(username, save_dir, log_callback=print):
             loader.download_post(post, target=os.path.join(save_dir, username))
             count += 1
             pbar.update(1)
-    log_callback("Profile media downloaded!\n")
+    log_callback("Profile media downloaded.")
 
-
-
-# Terminal Interface (TUI)
 
 def run_tui():
     print("\n=== Universal Media Downloader (TUI Mode) ===")
     url = input("Enter media URL: ").strip()
     save_dir = os.path.join(os.getcwd(), "downloads")
     os.makedirs(save_dir, exist_ok=True)
-
     site = detect_site(url)
     print(f"Detected site: {site}")
 
@@ -175,14 +217,11 @@ def run_tui():
         print(f"Error: {e}")
 
 
-
-# GUI
-
 class DownloaderApp(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("Universal Media Downloader")
-        self.geometry("620x480")
+        self.geometry("640x520")
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("blue")
 
@@ -195,21 +234,39 @@ class DownloaderApp(ctk.CTk):
     def _build_ui(self):
         ctk.CTkLabel(self, text="Media URL", font=("Arial", 14)).pack(pady=(15, 5))
         ctk.CTkEntry(self, textvariable=self.url_var, width=500, height=35).pack(pady=5)
-        ctk.CTkLabel(self, text=f"Save Folder: {self.save_path}", font=("Arial", 12)).pack(pady=5)
-        ctk.CTkLabel(self, text="Quality (YouTube only):", font=("Arial", 12)).pack(pady=5)
 
+        path_frame = ctk.CTkFrame(self)
+        path_frame.pack(pady=5)
+        ctk.CTkLabel(path_frame, text="Save Folder:", font=("Arial", 12)).pack(side="left", padx=5)
+        ctk.CTkButton(path_frame, text="Change", command=self.change_directory, width=80).pack(side="right", padx=5)
+        self.path_label = ctk.CTkLabel(path_frame, text=self.save_path, font=("Arial", 11))
+        self.path_label.pack(side="left", padx=5)
+
+        ctk.CTkLabel(self, text="Quality (YouTube only):", font=("Arial", 12)).pack(pady=5)
         options = ["Audio Only (mp3)", "360p", "480p", "720p", "1080p", "Best"]
         self.quality_menu = ctk.CTkOptionMenu(self, variable=self.quality_var, values=options)
         self.quality_menu.pack(pady=5)
 
+        self.progress = ctk.CTkProgressBar(self, width=500)
+        self.progress.set(0)
+        self.progress.pack(pady=10)
+
         ctk.CTkButton(self, text="Start Download", command=self.start_download, width=200, height=40).pack(pady=10)
-        self.log_box = ctk.CTkTextbox(self, width=550, height=220, font=("Consolas", 11))
+
+        self.log_box = ctk.CTkTextbox(self, width=580, height=220, font=("Consolas", 11))
         self.log_box.pack(pady=10)
-        self.log("Ready.\n")
+        self.log("Ready.")
 
     def log(self, message):
         self.log_box.insert("end", message + "\n")
         self.log_box.see("end")
+
+    def change_directory(self):
+        new_dir = filedialog.askdirectory()
+        if new_dir:
+            self.save_path = new_dir
+            self.path_label.configure(text=self.save_path)
+            self.log(f"Download folder changed to: {self.save_path}")
 
     def start_download(self):
         url = self.url_var.get().strip()
@@ -220,26 +277,26 @@ class DownloaderApp(ctk.CTk):
         thread = threading.Thread(target=self.download_handler, args=(url,))
         thread.start()
 
+    def update_progress(self, percent):
+        self.progress.set(percent / 100)
+
     def download_handler(self, url):
         site = detect_site(url)
         try:
             if site == "youtube":
-                download_youtube(url, self.save_path, self.quality_var.get(), self.log)
+                download_youtube(url, self.save_path, self.quality_var.get(), self.update_progress, self.log)
             elif site == "soundgasm":
-                download_soundgasm(url, self.save_path, self.log)
+                download_soundgasm(url, self.save_path, self.update_progress, self.log)
             elif site in ("facebook", "reddit", "instagram_post"):
-                download_best(url, self.save_path, self.log)
+                download_best(url, self.save_path, self.update_progress, self.log)
             elif site == "instagram_profile":
                 username = url.split("/")[-1] or url.split("/")[-2]
                 download_instagram_profile(username, self.save_path, self.log)
             else:
                 self.log("Unsupported site or invalid URL.")
         except Exception as e:
-            self.log(f"Error: {e}\n")
+            self.log(f"Error: {e}")
 
-
-
-# Entry Point
 
 if __name__ == "__main__":
     if not GUI_AVAILABLE or not os.environ.get("DISPLAY"):
