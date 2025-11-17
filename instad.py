@@ -177,10 +177,23 @@ def download_instagram_profile(username, save_dir, log_callback=print):
 
 
 def run_tui():
-    print("\n=== Universal Media Downloader (TUI Mode) ===")
-    url = input("Enter media URL: ").strip()
-    save_dir = os.path.join(os.getcwd(), "downloads")
+    print("\n=== Instad (TUI Mode) ===")
+
+
+    default_dir = os.path.join(os.getcwd(), "downloads")
+    print(f"Default download folder: {default_dir}")
+    custom_dir = input("Enter custom download folder (or press Enter to use default): ").strip()
+
+    if custom_dir:
+        save_dir = os.path.expanduser(custom_dir)
+    else:
+        save_dir = default_dir
+
     os.makedirs(save_dir, exist_ok=True)
+    print(f"Download directory set to: {save_dir}\n")
+
+
+    url = input("Enter media URL: ").strip()
     site = detect_site(url)
     print(f"Detected site: {site}")
 
@@ -220,7 +233,7 @@ def run_tui():
 class DownloaderApp(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.title("Universal Media Downloader")
+        self.title("Instad")
         self.geometry("640x520")
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("blue")
