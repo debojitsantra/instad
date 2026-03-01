@@ -1,5 +1,4 @@
 customtkinter
-tkinter
 instaloader
 tqdm
 yt-dlp
