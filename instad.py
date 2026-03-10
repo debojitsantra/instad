@@ -58,7 +58,7 @@ def download_youtube(url, save_dir, quality, progress_callback=None, log_callbac
         "format": fmt,
         "quiet": True,
         "progress_hooks": [hook],
-        "extractor_args": {"youtube": ["player_client=default"]}
+        "extractor_args": {"youtube": {"player_client": ["default"]}}
     }
 
     if quality == "Audio Only (mp3)":
@@ -126,7 +126,10 @@ def download_soundgasm(url, save_dir, progress_callback=None, log_callback=print
 
 def load_instagram_session(loader, log_callback=print):
     """Automatically loads saved Instagram session if available."""
-    session_files = [f for f in os.listdir('.') if f.startswith("session-")]
+    try:
+        session_files = [f for f in os.listdir('.') if f.startswith("session-")]
+    except Exception:
+        return False
     if session_files:
         try:
             session_file = session_files[0]
@@ -158,9 +161,11 @@ def download_instagram_profile(username, save_dir, log_callback=print):
 
     total_posts = profile.mediacount
     log_callback(f"'{username}' has {total_posts} posts.")
+
     try:
-        limit = int(input("How many posts to download? (enter a number): "))
-    except ValueError:
+        limit_str = input("How many posts to download? (enter a number): ").strip()
+        limit = int(limit_str)
+    except (ValueError, EOFError):
         log_callback("Invalid input.")
         return
 
@@ -170,15 +175,30 @@ def download_instagram_profile(username, save_dir, log_callback=print):
         for post in posts:
             if count >= limit:
                 break
-            loader.download_post(post, target=os.path.join(save_dir, username))
+            try:
+                loader.download_post(post, target=os.path.join(save_dir, username))
+            except Exception as e:
+                log_callback(f"Skipped post: {e}")
             count += 1
             pbar.update(1)
     log_callback("Profile media downloaded.")
 
 
+def extract_instagram_username(url):
+    """Reliably extract username from Instagram profile URL."""
+    url = url.rstrip("/")
+    parts = url.split("/")
+    # Filter out empty strings
+    parts = [p for p in parts if p]
+    # Last non-empty part after stripping protocol/domain
+    for part in reversed(parts):
+        if "instagram.com" not in part:
+            return part
+    return parts[-1]
+
+
 def run_tui():
     print("\n=== Instad (TUI Mode) ===")
-
 
     default_dir = os.path.join(os.getcwd(), "downloads")
     print(f"Default download folder: {default_dir}")
@@ -191,7 +211,6 @@ def run_tui():
 
     os.makedirs(save_dir, exist_ok=True)
     print(f"Download directory set to: {save_dir}\n")
-
 
     url = input("Enter media URL: ").strip()
     site = detect_site(url)
@@ -222,93 +241,98 @@ def run_tui():
         elif site in ("facebook", "reddit", "instagram_post"):
             download_best(url, save_dir)
         elif site == "instagram_profile":
-            username = url.split("/")[-1] or url.split("/")[-2]
+            username = extract_instagram_username(url)
             download_instagram_profile(username, save_dir)
         else:
             print("Unsupported site or invalid URL.")
+    except KeyboardInterrupt:
+        print("\nCancelled.")
     except Exception as e:
         print(f"Error: {e}")
 
 
-class DownloaderApp(ctk.CTk):
-    def __init__(self):
-        super().__init__()
-        self.title("Instad")
-        self.geometry("640x520")
-        ctk.set_appearance_mode("dark")
-        ctk.set_default_color_theme("blue")
+if GUI_AVAILABLE:
+    class DownloaderApp(ctk.CTk):
+        def __init__(self):
+            super().__init__()
+            self.title("Instad")
+            self.geometry("640x520")
+            ctk.set_appearance_mode("dark")
+            ctk.set_default_color_theme("blue")
 
-        self.url_var = ctk.StringVar()
-        self.save_path = os.path.join(os.getcwd(), "downloads")
-        self.quality_var = ctk.StringVar(value="Best")
+            self.url_var = ctk.StringVar()
+            self.save_path = os.path.join(os.getcwd(), "downloads")
+            self.quality_var = ctk.StringVar(value="Best")
 
-        self._build_ui()
+            self._build_ui()
 
-    def _build_ui(self):
-        ctk.CTkLabel(self, text="Media URL", font=("Arial", 14)).pack(pady=(15, 5))
-        ctk.CTkEntry(self, textvariable=self.url_var, width=500, height=35).pack(pady=5)
+        def _build_ui(self):
+            ctk.CTkLabel(self, text="Media URL", font=("Arial", 14)).pack(pady=(15, 5))
+            ctk.CTkEntry(self, textvariable=self.url_var, width=500, height=35).pack(pady=5)
 
-        path_frame = ctk.CTkFrame(self)
-        path_frame.pack(pady=5)
-        ctk.CTkLabel(path_frame, text="Save Folder:", font=("Arial", 12)).pack(side="left", padx=5)
-        ctk.CTkButton(path_frame, text="Change", command=self.change_directory, width=80).pack(side="right", padx=5)
-        self.path_label = ctk.CTkLabel(path_frame, text=self.save_path, font=("Arial", 11))
-        self.path_label.pack(side="left", padx=5)
+            path_frame = ctk.CTkFrame(self)
+            path_frame.pack(pady=5)
+            ctk.CTkLabel(path_frame, text="Save Folder:", font=("Arial", 12)).pack(side="left", padx=5)
+            ctk.CTkButton(path_frame, text="Change", command=self.change_directory, width=80).pack(side="right", padx=5)
+            self.path_label = ctk.CTkLabel(path_frame, text=self.save_path, font=("Arial", 11))
+            self.path_label.pack(side="left", padx=5)
 
-        ctk.CTkLabel(self, text="Quality (YouTube only):", font=("Arial", 12)).pack(pady=5)
-        options = ["Audio Only (mp3)", "360p", "480p", "720p", "1080p", "Best"]
-        self.quality_menu = ctk.CTkOptionMenu(self, variable=self.quality_var, values=options)
-        self.quality_menu.pack(pady=5)
+            ctk.CTkLabel(self, text="Quality (YouTube only):", font=("Arial", 12)).pack(pady=5)
+            options = ["Audio Only (mp3)", "360p", "480p", "720p", "1080p", "Best"]
+            self.quality_menu = ctk.CTkOptionMenu(self, variable=self.quality_var, values=options)
+            self.quality_menu.pack(pady=5)
 
-        self.progress = ctk.CTkProgressBar(self, width=500)
-        self.progress.set(0)
-        self.progress.pack(pady=10)
+            self.progress = ctk.CTkProgressBar(self, width=500)
+            self.progress.set(0)
+            self.progress.pack(pady=10)
 
-        ctk.CTkButton(self, text="Start Download", command=self.start_download, width=200, height=40).pack(pady=10)
+            ctk.CTkButton(self, text="Start Download", command=self.start_download, width=200, height=40).pack(pady=10)
 
-        self.log_box = ctk.CTkTextbox(self, width=580, height=220, font=("Consolas", 11))
-        self.log_box.pack(pady=10)
-        self.log("Ready.")
+            self.log_box = ctk.CTkTextbox(self, width=580, height=220, font=("Consolas", 11))
+            self.log_box.pack(pady=10)
+            self.log("Ready.")
 
-    def log(self, message):
-        self.log_box.insert("end", message + "\n")
-        self.log_box.see("end")
+        def log(self, message):
+            self.log_box.insert("end", str(message) + "\n")
+            self.log_box.see("end")
 
-    def change_directory(self):
-        new_dir = filedialog.askdirectory()
-        if new_dir:
-            self.save_path = new_dir
-            self.path_label.configure(text=self.save_path)
-            self.log(f"Download folder changed to: {self.save_path}")
+        def change_directory(self):
+            new_dir = filedialog.askdirectory()
+            if new_dir:
+                self.save_path = new_dir
+                self.path_label.configure(text=self.save_path)
+                self.log(f"Download folder changed to: {self.save_path}")
 
-    def start_download(self):
-        url = self.url_var.get().strip()
-        if not url:
-            messagebox.showerror("Error", "Please enter a URL.")
-            return
-        self.log(f"Detected site: {detect_site(url)}")
-        thread = threading.Thread(target=self.download_handler, args=(url,))
-        thread.start()
+        def start_download(self):
+            url = self.url_var.get().strip()
+            if not url:
+                messagebox.showerror("Error", "Please enter a URL.")
+                return
+            os.makedirs(self.save_path, exist_ok=True)
+            self.progress.set(0)
+            self.log(f"Detected site: {detect_site(url)}")
+            thread = threading.Thread(target=self.download_handler, args=(url,), daemon=True)
+            thread.start()
 
-    def update_progress(self, percent):
-        self.progress.set(percent / 100)
+        def update_progress(self, percent):
+            self.progress.set(percent / 100)
 
-    def download_handler(self, url):
-        site = detect_site(url)
-        try:
-            if site == "youtube":
-                download_youtube(url, self.save_path, self.quality_var.get(), self.update_progress, self.log)
-            elif site == "soundgasm":
-                download_soundgasm(url, self.save_path, self.update_progress, self.log)
-            elif site in ("facebook", "reddit", "instagram_post"):
-                download_best(url, self.save_path, self.update_progress, self.log)
-            elif site == "instagram_profile":
-                username = url.split("/")[-1] or url.split("/")[-2]
-                download_instagram_profile(username, self.save_path, self.log)
-            else:
-                self.log("Unsupported site or invalid URL.")
-        except Exception as e:
-            self.log(f"Error: {e}")
+        def download_handler(self, url):
+            site = detect_site(url)
+            try:
+                if site == "youtube":
+                    download_youtube(url, self.save_path, self.quality_var.get(), self.update_progress, self.log)
+                elif site == "soundgasm":
+                    download_soundgasm(url, self.save_path, self.update_progress, self.log)
+                elif site in ("facebook", "reddit", "instagram_post"):
+                    download_best(url, self.save_path, self.update_progress, self.log)
+                elif site == "instagram_profile":
+                    username = extract_instagram_username(url)
+                    download_instagram_profile(username, self.save_path, self.log)
+                else:
+                    self.log("Unsupported site or invalid URL.")
+            except Exception as e:
+                self.log(f"Error: {e}")
 
 
 if __name__ == "__main__":
