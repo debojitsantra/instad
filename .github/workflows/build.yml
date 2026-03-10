@@ -3,63 +3,69 @@ name: Build Releases
 on:
   push:
     tags:
-      - 'v*'  # triggers on version tags like v1.0.0
+      - 'v*'
+
+permissions:
+  contents: write
 
 jobs:
   build-windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      
+
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
           pip install pyinstaller
-      
+
       - name: Build Windows exe
-        run: pyinstaller --onefile --console instad.py
-      
+        run: pyinstaller --onefile --console --name instad instad.py
+
+      - name: Rename Windows binary
+        run: Rename-Item dist\instad.exe dist\instad-windows-x64.exe
+
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
-          name: instad-windows
-          path: dist/instad.exe
+          name: instad-windows-x64
+          path: dist/instad-windows-x64.exe
 
   build-linux:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      
+
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
           pip install pyinstaller
-      
+
       - name: Build Linux binary
-        run: pyinstaller --onefile instad.py
-      
+        run: pyinstaller --onefile --name instad instad.py
+
+      - name: Rename Linux binary
+        run: mv dist/instad dist/instad-linux-x64
+
       - name: Upload Linux artifact
         uses: actions/upload-artifact@v4
         with:
-          name: instad-linux
-          path: dist/instad
+          name: instad-linux-x64
+          path: dist/instad-linux-x64
 
   release:
     needs: [build-windows, build-linux]
     runs-on: ubuntu-latest
-    permissions:
-        contents: write
-    
     steps:
       - name: Download Windows artifact
         uses: actions/download-artifact@v4
@@ -75,7 +81,8 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            instad.exe
-            instad
+            instad-windows-x64.exe
+            instad-linux-x64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
