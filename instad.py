@@ -312,7 +312,11 @@ class DownloaderApp(ctk.CTk):
 
 
 if __name__ == "__main__":
-    if not GUI_AVAILABLE or not os.environ.get("DISPLAY"):
+    import platform
+    on_linux = platform.system() == "Linux"
+    has_display = os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")
+
+    if not GUI_AVAILABLE or (on_linux and not has_display):
         run_tui()
     else:
         app = DownloaderApp()
