@@ -343,5 +343,8 @@ if __name__ == "__main__":
     if not GUI_AVAILABLE or (on_linux and not has_display):
         run_tui()
     else:
-        app = DownloaderApp()
-        app.mainloop()
+        try:
+            app = DownloaderApp()
+            app.mainloop()
+        except Exception:
+            run_tui()  
