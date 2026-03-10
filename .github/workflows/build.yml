@@ -57,6 +57,9 @@ jobs:
   release:
     needs: [build-windows, build-linux]
     runs-on: ubuntu-latest
+    permissions:
+        contents: write
+    
     steps:
       - name: Download Windows artifact
         uses: actions/download-artifact@v4
