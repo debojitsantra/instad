@@ -1,6 +1,6 @@
 # Instad: Universal Media Downloader
 
-Instad is a Python-based media downloader for fetching photos, videos, and audio from multiple platforms including Instagram, YouTube, Soundgasm, Reddit, and Facebook.  
+Instad is a Python-based media downloader for fetching photos, videos, and audio from multiple platforms including Instagram, YouTube, Soundgasm, Reddit, and Facebook & Platforms supported by Yt-dlp.  
 It uses `instaloader` and `yt-dlp` under the hood to deliver reliable, high-quality downloads.
 
 ---
@@ -106,9 +106,10 @@ This triggers automated Windows (.exe) and Linux binary builds, published to Git
 |---|---|
 | YouTube | Video / Audio |
 | Instagram | Posts / Profiles |
-| Soundgasm | Audio (MP3) |
+| Soundgasm | Audio (Converted to MP3) |
 | Facebook | Video |
 | Reddit | Video |
+| Other Generic Platforms Supported by Yt-dlp| Video/Audio|
 
 ---
 
