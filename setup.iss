@@ -10,6 +10,8 @@ OutputDir=dist
 OutputBaseFilename=Instad-Setup-x64
 SetupIconFile=assets\icon.ico
 WizardStyle=modern
+ArchitecturesAllowed=x64
+ArchitecturesInstallIn64BitMode=x64
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
