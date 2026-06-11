@@ -1,11 +1,9 @@
-# Instad: Universal Media Downloader
-
 <p align="center">
-  <img src="images/full_logo.png" width="120" style="border-radius: 24px;" alt="Backlog Tracker Logo" referrerPolicy="no-referrer" />
+  <img src="images/full_logo.png" width="400" style="border-radius: 24px;" alt="Backlog Tracker Logo" referrerPolicy="no-referrer" />
 </p>
 
 
-Instad is a Python-based yt-dlp GUI for fetching videos, playlists, clips, posts, reels, and audio from platforms supported by `yt-dlp`.
+#### **Instad** is a Python-based yt-dlp GUI for fetching videos, playlists, clips, posts, reels, and audio from platforms supported by `yt-dlp`.
 
 ## Legal Copyright Disclaimer
 
@@ -115,7 +113,7 @@ Download the latest release for your platform from the [Releases](../../releases
 pip install pyinstaller
 
 # Windows
-pyinstaller --onefile --windowed --add-data "assets;assets" instad.py
+pyinstaller --noconfirm --onefile --noconsole --icon "assets/icon.ico" --add-data "assets;assets" --name instad instad.py
 
 # Linux
 pyinstaller --onefile --add-data "assets:assets" instad.py
