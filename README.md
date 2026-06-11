@@ -17,7 +17,7 @@ Instad is a Python-based yt-dlp GUI for fetching videos, playlists, clips, posts
 ---
 
 ## Requirements
-- Python 3.11+
+- Python 3.13+
 - ffmpeg installed and available in PATH
 - Deno installed and available in PATH (for YouTube signature solving)
 - Dependencies listed in `requirements.txt`

@@ -1,2 +1,3 @@
 customtkinter
 yt-dlp[default]
+pillow

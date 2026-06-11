@@ -8,16 +8,17 @@ import threading
 import ctypes
 import ctypes.wintypes
 from urllib.parse import urlparse
-
 import yt_dlp
 
 try:
     import customtkinter as ctk
     from tkinter import PhotoImage, filedialog, messagebox
+    from PIL import Image
 
     GUI_AVAILABLE = True
 except Exception:
     GUI_AVAILABLE = False
+
 
 
 APP_NAME = "Instad"
@@ -477,6 +478,16 @@ if GUI_AVAILABLE:
                 icon_path_png = resource_path(os.path.join("assets", "icon.png"))
                 self._icon_image = PhotoImage(file=icon_path_png if os.path.exists(icon_path_png) else icon_path)
                 self.iconphoto(True, self._icon_image)
+
+                # Create a CTkImage for CustomTkinter widgets to render the icon properly
+                target_path = icon_path_png if os.path.exists(icon_path_png) else icon_path
+                if os.path.exists(target_path):
+                    pil_image = Image.open(target_path)
+                    self._icon_image_ctk = ctk.CTkImage(
+                        light_image=pil_image,
+                        dark_image=pil_image,
+                        size=(58, 58)
+                    )
             except Exception:
                 pass
 
@@ -1060,7 +1071,7 @@ if GUI_AVAILABLE:
             icon_label = ctk.CTkLabel(
                 card,
                 text="",
-                image=self._icon_image if hasattr(self, "_icon_image") else None,
+                image=self._icon_image_ctk if hasattr(self, "_icon_image_ctk") else None,
                 width=58,
                 height=58,
                 corner_radius=14,
