@@ -1,25 +1,25 @@
 # Instad: Universal Media Downloader
 
-Instad is a Python-based media downloader for fetching photos, videos, and audio from multiple platforms including Instagram, YouTube, Soundgasm, Reddit, and Facebook & Platforms supported by Yt-dlp.  
-It uses `instaloader` and `yt-dlp` under the hood to deliver reliable, high-quality downloads.
+Instad is a Python-based yt-dlp GUI for fetching videos, playlists, clips, posts, reels, and audio from platforms supported by `yt-dlp`.
 
 ---
 
 ## Features
-- Download public Instagram posts and profiles
-- YouTube downloads with quality selection (Audio Only MP3, 360p, 480p, 720p, 1080p, Best)
-- Soundgasm downloads automatically converted to MP3
-- Facebook and Reddit media downloads at best available quality
-- Detects private Instagram profiles and handles them safely
-- Modern dark GUI built with `customtkinter`
+- Download any URL supported by yt-dlp
+- add multiple urls in queue
+- Download playlists when present
+- Choose between quality
+- Paste cookies in Settings for age-restricted, private, or signed-in downloads
+- Accepts Netscape `cookies.txt` exports or a raw browser `Cookie:` header
+- Modern  GUI built with `customtkinter`
 - Automatic fallback to TUI mode if no graphical display is available
-- Cross-platform: Windows and Linux supported
 
 ---
 
 ## Requirements
 - Python 3.11+
 - ffmpeg installed and available in PATH
+- Deno installed and available in PATH (for YouTube signature solving)
 - Dependencies listed in `requirements.txt`
 
 ---
@@ -47,8 +47,27 @@ winget install Gyan.FFmpeg
 ```bash
 sudo apt install ffmpeg -y
 ```
+### Install Deno
+
+**Windows**
+```powershell
+irm https://deno.land/install.ps1 | iex
+```
+**Linux/WSL**
+```bash
+curl -fsSL https://deno.land/install.sh | sh
+```
 
 ---
+
+## Screenshots
+
+<p align="center">
+  <img src="images/1.png" width="40%" alt="Screenshot 1" />
+  <img src="images/2.png" width="40%" alt="Screenshot 2" />
+  <img src="images/3.png" width="40%" alt="Screenshot 3" />
+  <img src="images/4.png" width="40%" alt="Screenshot 4" />
+</p>
 
 ## Usage
 
@@ -60,14 +79,22 @@ Launches GUI on supported systems. Falls back to TUI automatically on headless/L
 
 ---
 
+## Cookies
+
+Use Settings -> Cookies for videos that require a signed-in account, such as age-restricted or private content.
+
+Paste either:
+- A Netscape `cookies.txt` export.
+- A raw browser `Cookie:` header copied from a signed-in request.
+
+Refresh the pasted cookies if a download fails with an authentication or age-restriction error.
+
+---
+
 ## Pre-built Binaries
 
 Download the latest release for your platform from the [Releases](../../releases) page:
 
-| Platform | File |
-|---|---|
-| Windows | `instad.exe` |
-| Linux | `instad` |
 
 ---
 
@@ -77,13 +104,13 @@ Download the latest release for your platform from the [Releases](../../releases
 pip install pyinstaller
 
 # Windows
-pyinstaller --onefile --console instad.py
+pyinstaller --onefile --windowed --add-data "assets;assets" instad.py
 
 # Linux
-pyinstaller --onefile instad.py
+pyinstaller --onefile --add-data "assets:assets" instad.py
 ```
 
-Output binary will be in `dist/`.
+Output binary will be in `dist/`. For a custom Windows executable icon, convert `assets/icon.svg` to `.ico` and pass it with `--icon path\to\icon.ico`.
 
 ---
 
@@ -92,8 +119,8 @@ Output binary will be in `dist/`.
 Releases are built automatically via GitHub Actions on every version tag push:
 
 ```bash
-git tag v1.0.1
-git push origin v1.0.1
+git tag v1.2.0.1
+git push origin v1.2.0.1
 ```
 
 This triggers automated Windows (.exe) and Linux binary builds, published to GitHub Releases.
@@ -104,12 +131,7 @@ This triggers automated Windows (.exe) and Linux binary builds, published to Git
 
 | Site | Type |
 |---|---|
-| YouTube | Video / Audio |
-| Instagram | Posts / Profiles |
-| Soundgasm | Audio (Converted to MP3) |
-| Facebook | Video |
-| Reddit | Video |
-| Other Generic Platforms Supported by Yt-dlp| Video/Audio|
+| Any yt-dlp supported site | Video / Audio / Playlists / Metadata supported by that extractor |
 
 ---
 

@@ -24,17 +24,20 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
-      - name: Build Windows exe
-        run: pyinstaller --onefile --console --name instad instad.py
+      - name: Build Windows Executable
+        run: pyinstaller --noconfirm --onefile --console --icon "assets/icon.ico" --add-data "assets;assets" --name instad instad.py
 
-      - name: Rename Windows binary
-        run: Rename-Item dist\instad.exe dist\instad-windows-x64.exe
+      - name: Build Installer (Inno Setup)
+        run: |
+          iscc setup.iss
 
-      - name: Upload Windows artifact
+      - name: Upload Windows Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: instad-windows-x64
-          path: dist/instad-windows-x64.exe
+          name: instad-windows-installer
+          path: |
+            dist/Instad-Setup-x64.exe
+            dist/instad.exe
 
   build-linux:
     runs-on: ubuntu-latest
@@ -51,38 +54,43 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
-      - name: Build Linux binary
-        run: pyinstaller --onefile --name instad instad.py
+      - name: Build Linux Binary
+        run: pyinstaller --noconfirm --onefile --add-data "assets:assets" --name instad instad.py
 
       - name: Rename Linux binary
         run: mv dist/instad dist/instad-linux-x64
+
+      - name: Create Linux Release Archive
+        run: tar -czvf instad-linux-x64.tar.gz dist/instad-linux-x64 README.md
 
       - name: Upload Linux artifact
         uses: actions/upload-artifact@v4
         with:
           name: instad-linux-x64
-          path: dist/instad-linux-x64
+          path: instad-linux-x64.tar.gz
 
   release:
     needs: [build-windows, build-linux]
     runs-on: ubuntu-latest
     steps:
-      - name: Download Windows artifact
+      - name: Download Windows Artifact
         uses: actions/download-artifact@v4
         with:
-          name: instad-windows
+          name: instad-windows-installer
 
-      - name: Download Linux artifact
+      - name: Download Linux Artifact
         uses: actions/download-artifact@v4
         with:
-          name: instad-linux
+          name: instad-linux-x64
+          path: . # Download to current directory
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            instad-windows-x64.exe
-            instad-linux-x64
+            Instad-Setup-x64.exe
+            instad.exe
+            instad-linux-x64.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
