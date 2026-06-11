@@ -71,11 +71,11 @@ curl -fsSL https://deno.land/install.sh | sh
 ## Screenshots
 
 <p align="center">
-  <img src="images/1.png" width="40%" alt="Screenshot 1" />
-  <img src="images/2.png" width="40%" alt="Screenshot 2" />
-  <img src="images/3.png" width="40%" alt="Screenshot 3" />
-  <img src="images/4.png" width="40%" alt="Screenshot 4" />
-  <img src="images/5.png" width="40%" alt="Screenshot 5" />
+  <img src="images/1.png" width="60%" alt="Screenshot 1" />
+  <img src="images/2.png" width="60%" alt="Screenshot 2" />
+  <img src="images/3.png" width="60%" alt="Screenshot 3" />
+  <img src="images/4.png" width="60%" alt="Screenshot 4" />
+  <img src="images/5.png" width="60%" alt="Screenshot 5" />
 </p>
 
 ## Usage
