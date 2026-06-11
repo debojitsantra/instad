@@ -26,7 +26,7 @@ Name: "{autodesktop}\Instad"; Filename: "{app}\instad.exe"; Tasks: desktopicon
 [Run]
 ; Universal Deno Installation for Windows via PowerShell 
 Filename: "powershell.exe"; \
-    Parameters: "-ExecutionPolicy Bypass -Command ""try { if (!(Get-Command deno -ErrorAction SilentlyContinue)) { iwr https://deno.land/install.ps1 -useb | iex } } catch { exit 1 }"""; \
+    Parameters: "-ExecutionPolicy Bypass -Command ""try {{ if (!(Get-Command deno -ErrorAction SilentlyContinue)) {{ iwr https://deno.land/install.ps1 -useb | iex } } catch {{ exit 1 }"""; \
     StatusMsg: "Installing Deno runtime for signature solving..."; \
     Flags: runhidden runasoriginaluser
 
@@ -35,7 +35,7 @@ Filename: "powershell.exe"; \
     Parameters: "-ExecutionPolicy Bypass -Command ""[Environment]::SetEnvironmentVariable('Path', [Environment]::GetEnvironmentVariable('Path', 'User') + ';' + $HOME + '\.deno\bin', 'User')"""; \
     Flags: runhidden runasoriginaluser
 
-Filename: "{app}\instad.exe"; Description: "{cm:LaunchProgram,Instad}"; Flags: nowait postinstall skipfsreq
+Filename: "{app}\instad.exe"; Description: "{cm:LaunchProgram,Instad}"; Flags: nowait postinstall skipifsilent
 
 [Code]
 function InitializeSetup(): Boolean;

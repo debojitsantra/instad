@@ -478,16 +478,20 @@ if GUI_AVAILABLE:
 
         def _set_window_icon(self):
             try:
-                # Use .ico for Windows title bar, fallback to PhotoImage for others
                 icon_path = resource_path(os.path.join("assets", "icon.ico"))
-                if os.name == "nt":
-                    self.iconbitmap(icon_path)
-                
                 icon_path_png = resource_path(os.path.join("assets", "icon.png"))
-                self._icon_image = PhotoImage(file=icon_path_png if os.path.exists(icon_path_png) else icon_path)
+
+                # Set PhotoImage first (cross-platform fallback)
+                photo_src = icon_path_png if os.path.exists(icon_path_png) else icon_path
+                self._icon_image = PhotoImage(file=photo_src)
                 self.iconphoto(True, self._icon_image)
 
-                # Create a CTkImage for CustomTkinter widgets to render the icon properly
+                # On Windows, iconbitmap with .ico overrides iconphoto and gives
+                # a crisp multi-resolution icon in the title bar and taskbar.
+                if os.name == "nt" and os.path.exists(icon_path):
+                    self.iconbitmap(icon_path)
+
+                # Create a CTkImage for CustomTkinter widgets
                 target_path = icon_path_png if os.path.exists(icon_path_png) else icon_path
                 if os.path.exists(target_path):
                     pil_image = Image.open(target_path)
@@ -1528,6 +1532,16 @@ if GUI_AVAILABLE:
 
 if __name__ == "__main__":
     import platform
+
+    # Set AppUserModelID before creating any window so Windows taskbar
+    # groups the app under its own icon instead of a generic Python icon.
+    if sys.platform.startswith("win"):
+        try:
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+                f"debojitsantra.{APP_NAME}.{VERSION}"
+            )
+        except Exception:
+            pass
 
     on_linux = platform.system() == "Linux"
     has_display = os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")
