@@ -112,7 +112,7 @@ Download the latest release for your platform from the [Releases](../../releases
 pip install pyinstaller
 
 # Windows
-pyinstaller --onefile --windowed --add-data "assets;assets" instad.py
+pyinstaller --noconfirm --onefile --noconsole --icon "assets/icon.ico" --add-data "assets;assets" --name instad instad.py
 
 # Linux
 pyinstaller --onefile --add-data "assets:assets" instad.py
