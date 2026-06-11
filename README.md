@@ -65,6 +65,20 @@ irm https://deno.land/install.ps1 | iex
 ```bash
 curl -fsSL https://deno.land/install.sh | sh
 ```
+##### Linux Requirements
+
+If the app fails to start with a Fontconfig or font-related error, install:
+
+```bash
+## Debian
+sudo apt install -y fontconfig fonts-dejavu-core fonts-liberation2
+## Arch
+sudo pacman -S fontconfig ttf-dejavu ttf-liberation
+## Fedora
+sudo dnf install fontconfig dejavu-sans-fonts liberation-fonts
+```
+
+(Required for some Linux distributions and WSL setups.)
 
 ---
 
