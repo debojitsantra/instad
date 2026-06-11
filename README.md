@@ -1,6 +1,16 @@
 # Instad: Universal Media Downloader
 
+<p align="center">
+  <img src="images/full_logo.png" width="120" style="border-radius: 24px;" alt="Backlog Tracker Logo" referrerPolicy="no-referrer" />
+</p>
+
+
 Instad is a Python-based yt-dlp GUI for fetching videos, playlists, clips, posts, reels, and audio from platforms supported by `yt-dlp`.
+
+## Legal Copyright Disclaimer
+
+> [!CAUTION]
+> Please be aware that videos on platforms like YouTube may be protected by copyright (DMCA). The creator of Instad does not support, and cannot be held accountable for, any use of this application that infringes upon these legal protections.
 
 ---
 
