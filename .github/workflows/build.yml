@@ -55,7 +55,7 @@ jobs:
           pip install pyinstaller
 
       - name: Build Linux Binary
-        run: pyinstaller --noconfirm --onefile --add-data "assets:assets" --name instad instad.py
+        run: pyinstaller --noconfirm --onefile --windowed --icon "assets/icon.png" --add-data "assets:assets" --name instad instad.py
 
       - name: Rename Linux binary
         run: mv dist/instad dist/instad-linux-x64
