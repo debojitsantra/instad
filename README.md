@@ -98,7 +98,6 @@ sudo dnf install fontconfig dejavu-sans-fonts liberation-fonts
 python instad.py
 ```
 
-Launches GUI on supported systems. Falls back to TUI automatically on headless/Linux environments without a display.
 
 ---
 
