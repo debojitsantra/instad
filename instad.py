@@ -401,7 +401,7 @@ def run_tui():
     print(f"\n=== {APP_NAME} {VERSION} TUI ===")
     print("Paste any URL supported by yt-dlp. Add multiple URLs separated by commas.")
 
-    default_dir = os.path.join(os.getcwd(), "downloads")
+    default_dir = os.path.join(os.path.expanduser("~"), "Downloads")
     custom_dir = input(f"Save folder [{default_dir}]: ").strip()
     save_dir = os.path.expanduser(custom_dir) if custom_dir else default_dir
 
@@ -446,7 +446,7 @@ if GUI_AVAILABLE:
             ctk.set_default_color_theme("blue")
             self._set_window_icon()
 
-            self.save_path = os.path.join(os.getcwd(), "downloads")
+            self.save_path = os.path.join(os.path.expanduser("~"), "Downloads")
             self.url_text = None
             self.path_label = None
             self.log_box = None
