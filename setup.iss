@@ -17,22 +17,23 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 [Files]
 Source: "dist\instad.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "assets\icon.ico"; DestDir: "{app}\assets"; Flags: ignoreversion
+Source: "assets\icon.png"; DestDir: "{app}\assets"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\Instad"; Filename: "{app}\instad.exe"
 Name: "{autodesktop}\Instad"; Filename: "{app}\instad.exe"; Tasks: desktopicon
 
 [Run]
-; Universal Deno Installation for Windows via PowerShell
+; Universal Deno Installation for Windows via PowerShell 
 Filename: "powershell.exe"; \
     Parameters: "-ExecutionPolicy Bypass -Command ""try { if (!(Get-Command deno -ErrorAction SilentlyContinue)) { iwr https://deno.land/install.ps1 -useb | iex } } catch { exit 1 }"""; \
     StatusMsg: "Installing Deno runtime for signature solving..."; \
-    Flags: runhidden
+    Flags: runhidden runasoriginaluser
 
-; Add Deno to Path for the current session/user if needed
+; Add Deno to Path for the current session/user if needed (runs as original user to modify user environment)
 Filename: "powershell.exe"; \
     Parameters: "-ExecutionPolicy Bypass -Command ""[Environment]::SetEnvironmentVariable('Path', [Environment]::GetEnvironmentVariable('Path', 'User') + ';' + $HOME + '\.deno\bin', 'User')"""; \
-    Flags: runhidden
+    Flags: runhidden runasoriginaluser
 
 Filename: "{app}\instad.exe"; Description: "{cm:LaunchProgram,Instad}"; Flags: nowait postinstall skipfsreq
 
