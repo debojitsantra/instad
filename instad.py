@@ -76,6 +76,14 @@ def available_js_runtimes():
     system_deno = shutil.which("deno")
     if system_deno:
         return {"deno": {"path": system_deno}}
+
+    # Check fallback path in user's home directory 
+    home = os.path.expanduser("~")
+    binary_name = "deno.exe" if sys.platform.startswith("win") else "deno"
+    fallback_deno = os.path.join(home, ".deno", "bin", binary_name)
+    if os.path.exists(fallback_deno) and os.path.isfile(fallback_deno):
+        return {"deno": {"path": fallback_deno}}
+
     return {}
 
 
@@ -1530,5 +1538,8 @@ if __name__ == "__main__":
         try:
             app = DownloaderApp()
             app.mainloop()
-        except Exception:
+        except Exception as exc:
+            print(f"Failed to launch GUI: {exc}", file=sys.stderr)
+            import traceback
+            traceback.print_exc()
             run_tui()
