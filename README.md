@@ -53,7 +53,12 @@ winget install Gyan.FFmpeg
 ```
 **Linux/WSL:**
 ```bash
+# Debian
 sudo apt install ffmpeg -y
+# Arch
+sudo sudo pacman -S ffmpeg
+# Fedora
+sudo dnf install ffmpeg
 ```
 ### Install Deno
 
