@@ -56,7 +56,7 @@ winget install Gyan.FFmpeg
 # Debian
 sudo apt install ffmpeg -y
 # Arch
-sudo sudo pacman -S ffmpeg
+sudo pacman -S ffmpeg
 # Fedora
 sudo dnf install ffmpeg
 ```
