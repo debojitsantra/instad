@@ -85,7 +85,7 @@ jobs:
           path: . # Download to current directory
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             Instad-Setup-x64.exe
