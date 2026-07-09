@@ -7,8 +7,9 @@ import tempfile
 import threading
 import ctypes
 import ctypes.wintypes
+import webbrowser
 from urllib.parse import urlparse
-import yt_dlp
+from concurrent.futures import ThreadPoolExecutor
 
 try:
     import customtkinter as ctk
@@ -19,12 +20,24 @@ try:
 except Exception:
     GUI_AVAILABLE = False
 
+# Lazy import yt_dlp to reduce startup time
+_yt_dlp_module = None
+
+def get_ytdlp():
+    global _yt_dlp_module
+    if _yt_dlp_module is None:
+        import yt_dlp
+        _yt_dlp_module = yt_dlp
+    return _yt_dlp_module
+
 
 
 APP_NAME = "Instad"
 VERSION = "v1.2.0.0"
 DEFAULT_FILENAME_PATTERN = "%(extractor)s/%(title).180s [%(id)s].%(ext)s"
 ANSI_ESCAPE_PATTERN = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
+
+
 
 
 if sys.platform.startswith('win'):
@@ -124,57 +137,54 @@ class YtdlpGuiLogger:
         self.log_callback(f"Error: {clean_message}")
 
 FORMAT_PRESETS = {
-    "Best video + audio": {
-        "format": "bv*+ba/b",
+    "Best Quality Video": {
+        "format": "bv*",
         "merge_output_format": "mp4",
     },
-    "Best single file": {
-        "format": "b",
+    "Video 2160p": {
+        "format": "bv*[height=2160]+ba/b[height=2160]/b",
+        "merge_output_format": "mp4",
     },
-    "Audio only (original)": {
-        "format": "ba/b",
+    "Video 1440p": {
+        "format": "bv*[height=1440]+ba/b[height=1440]/b",
+        "merge_output_format": "mp4",
+    },
+    "Video 1080p": {
+        "format": "bv*[height=1080]+ba/b[height=1080]/b",
+        "merge_output_format": "mp4",
+    },
+    "Video 720p": {
+        "format": "bv*[height=720]+ba/b[height=720]/b",
+        "merge_output_format": "mp4",
+    },
+    "Video 480p": {
+        "format": "bv*[height=480]+ba/b[height=480]/b",
+        "merge_output_format": "mp4",
+    },
+    "Video 360p": {
+        "format": "bv*[height=360]+ba/b[height=360]/b",
+        "merge_output_format": "mp4",
+    },
+    "Video 240p": {
+        "format": "bv*[height=240]+ba/b[height=240]/b",
+        "merge_output_format": "mp4",
+    },
+    "Video 144p": {
+        "format": "bv*[height=144]+ba/b[height=144]/b",
+        "merge_output_format": "mp4",
     },
     "Audio only (mp3)": {
-        "format": "ba/b",
+        "format": "ba",
         "postprocessors": [
             {
                 "key": "FFmpegExtractAudio",
                 "preferredcodec": "mp3",
-                "preferredquality": "192",
+                "preferredquality": "320",
             }
         ],
     },
-    "Video up to 1080p": {
-        "format": "bv*[height<=1080]+ba/b[height<=1080]/b",
-        "merge_output_format": "mp4",
-    },
-    "Video up to 720p": {
-        "format": "bv*[height<=720]+ba/b[height<=720]/b",
-        "merge_output_format": "mp4",
-    },
-    "Video up to 480p": {
-        "format": "bv*[height<=480]+ba/b[height<=480]/b",
-        "merge_output_format": "mp4",
-    },
-    "Video up to 1440p": {
-        "format": "bv*[height<=1440]+ba/b[height<=1440]/b",
-        "merge_output_format": "mp4",
-    },
-    "Video up to 2160p (4K)": {
-        "format": "bv*[height<=2160]+ba/b[height<=2160]/b",
-        "merge_output_format": "mp4",
-    },
-    "Highest quality video only": {
-        "format": "bv*",
-    },
-    "Audio only (Opus)": {
-        "format": "ba*[ext=opus]/ba*",
-        "postprocessors": [
-            {
-                "key": "FFmpegExtractAudio",
-                "preferredcodec": "opus",
-            }
-        ],
+    "Audio only (original)": {
+        "format": "ba",
     },
 }
 
@@ -249,7 +259,6 @@ def build_ydl_options(
     format_preset,
     filename_pattern=DEFAULT_FILENAME_PATTERN,
     download_playlist=True,
-    write_subtitles=False,
     write_thumbnail=False,
     cookies_text="",
     cookie_file=None,
@@ -257,8 +266,9 @@ def build_ydl_options(
     log_callback=print,
     phase_callback=None,
     run_state=None,
+    speed_limit="",
 ):
-    preset = FORMAT_PRESETS.get(format_preset, FORMAT_PRESETS["Best video + audio"])
+    preset = FORMAT_PRESETS.get(format_preset, FORMAT_PRESETS["Best Quality Video"])
     ydl_opts = {
         "outtmpl": os.path.join(save_dir, filename_pattern),
         "format": preset["format"],
@@ -273,8 +283,6 @@ def build_ydl_options(
         "js_runtimes": available_js_runtimes(),
         "remote_components": ["ejs:npm", "ejs:github"],
         "noplaylist": not download_playlist,
-        "writesubtitles": write_subtitles,
-        "writeautomaticsub": write_subtitles,
         "writethumbnail": write_thumbnail,
     }
 
@@ -282,6 +290,14 @@ def build_ydl_options(
         ydl_opts["merge_output_format"] = preset["merge_output_format"]
     if "postprocessors" in preset:
         ydl_opts["postprocessors"] = preset["postprocessors"]
+
+    # Speed limit (in Mbps)
+    if speed_limit:
+        # Convert Mbps to bytes per second: Mbps * 125000
+        try:
+            ydl_opts["ratelimit"] = f"{int(float(speed_limit) * 125000)}B"
+        except (ValueError, TypeError):
+            pass
 
     cookie_header = normalize_cookie_header(cookies_text)
     if cookie_file:
@@ -329,15 +345,15 @@ def write_temp_cookie_file(cookies_text):
 def download_with_ytdlp(
     urls,
     save_dir,
-    format_preset="Best video + audio",
+    format_preset="Best Quality Video",
     filename_pattern=DEFAULT_FILENAME_PATTERN,
     download_playlist=True,
-    write_subtitles=False,
     write_thumbnail=False,
     cookies_text="",
     progress_callback=None,
     log_callback=print,
     phase_callback=None,
+    speed_limit="",
 ):
     clean_urls = [url.strip() for url in urls if url.strip()]
     if not clean_urls:
@@ -365,7 +381,6 @@ def download_with_ytdlp(
             format_preset=format_preset,
             filename_pattern=filename_pattern,
             download_playlist=download_playlist,
-            write_subtitles=write_subtitles,
             write_thumbnail=write_thumbnail,
             cookies_text=cookies_text,
             cookie_file=cookie_file,
@@ -373,9 +388,11 @@ def download_with_ytdlp(
             log_callback=log_callback,
             phase_callback=phase_callback,
             run_state=run_state,
+            speed_limit=speed_limit,
         )
 
         try:
+            yt_dlp = get_ytdlp()
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 result = ydl.download(clean_urls)
         except Exception as exc:
@@ -458,23 +475,49 @@ if GUI_AVAILABLE:
             self.download_jobs = {}
             self.job_counter = 0
 
-            self.format_var = ctk.StringVar(value="Best video + audio")
+            self.format_var = ctk.StringVar(value="Best Quality Video")
             self.filename_pattern_var = ctk.StringVar(value=DEFAULT_FILENAME_PATTERN)
             self.playlist_var = ctk.BooleanVar(value=True)
-            self.subtitle_var = ctk.BooleanVar(value=False)
             self.thumbnail_var = ctk.BooleanVar(value=False)
             self.cookies_box = None
             self.opacity_var = ctk.DoubleVar(value=0.96)
             self.theme_var = ctk.StringVar(value="Dark")
+            self.speed_limit_var = ctk.StringVar(value="")
+            self.duplicate_skip_var = ctk.BooleanVar(value=True)
+
+            # Font cache for performance
+            self._font_cache = {}
+
+            # Tab building flags for lazy loading
+            self._download_tab_built = False
+            self._settings_tab_built = False
+            self._activity_tab_built = False
+
+            # Thread pool for downloads
+            self._executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="download")
 
             self._build_ui()
             self.update_idletasks()
             self._apply_frosted_glass(self.opacity_var.get())
-            self._load_cookies() # Load cookies after UI is built
+            # Load cookies in background to avoid blocking UI
+            threading.Thread(target=self._load_cookies, daemon=True).start()
             self.protocol("WM_DELETE_WINDOW", self._on_closing) # Save cookies on app close
 
         def _font(self, size, weight="normal"):
-            return ctk.CTkFont(family="SF Pro Display", size=size, weight=weight)
+            cache_key = (size, weight)
+            if cache_key not in self._font_cache:
+                self._font_cache[cache_key] = ctk.CTkFont(family="SF Pro Display", size=size, weight=weight)
+            return self._font_cache[cache_key]
+
+        def _on_tab_change(self):
+            """Handle tab changes for lazy tab loading."""
+            current_tab = self.tabs.get()
+            if current_tab == "Settings" and not self._settings_tab_built:
+                self._build_settings_tab(self._settings_tab_frame)
+                self._settings_tab_built = True
+            elif current_tab == "Activity" and not self._activity_tab_built:
+                self._build_activity_tab(self._activity_tab_frame)
+                self._activity_tab_built = True
 
         def _set_window_icon(self):
             try:
@@ -592,7 +635,7 @@ if GUI_AVAILABLE:
                 text="Ready",
                 corner_radius=12,
                 fg_color=COLORS["surface_muted"],
-                text_color=COLORS["accent"],
+                text_color=COLORS["text"],
                 font=self._font(14, "bold"),
                 width=130,
                 height=38,
@@ -610,15 +653,21 @@ if GUI_AVAILABLE:
                 fg_color=COLORS["surface"],
                 border_width=1,
                 border_color=COLORS["border_soft"],
+                command=self._on_tab_change,
             )
             self.tabs.grid(row=1, column=0, sticky="nsew")
             download_tab = self.tabs.add("Download")
             settings_tab = self.tabs.add("Settings")
             activity_tab = self.tabs.add("Activity")
 
+            # Placeholder frames for lazy loading
+            self._download_tab_frame = download_tab
+            self._settings_tab_frame = settings_tab
+            self._activity_tab_frame = activity_tab
+
+            # Build first tab immediately, others lazy
             self._build_download_tab(download_tab)
-            self._build_settings_tab(settings_tab)
-            self._build_activity_tab(activity_tab)
+            self._download_tab_built = True
 
         def _build_download_tab(self, parent):
             parent.configure(fg_color=COLORS["surface"])
@@ -702,6 +751,8 @@ if GUI_AVAILABLE:
             self.download_button.grid(row=3, column=0, sticky="ew", padx=22, pady=(0, 22))
 
         def _build_settings_tab(self, parent):
+            if self._settings_tab_built:
+                return
             parent.configure(fg_color=COLORS["surface"])
             parent.grid_columnconfigure(0, weight=1)
             parent.grid_rowconfigure(0, weight=1)
@@ -751,33 +802,8 @@ if GUI_AVAILABLE:
                 text_color=COLORS["text"],
             ).grid(row=1, column=1, sticky="ew", padx=(8, 22), pady=(4, 8))
 
-            ctk.CTkCheckBox(
-                card,
-                text="Download playlists when a URL contains one",
-                variable=self.playlist_var,
-                **checkbox_style,
-            ).grid(
-                row=2, column=0, columnspan=2, sticky="w", padx=22, pady=8
-            )
-            ctk.CTkCheckBox(
-                card,
-                text="Save subtitles when available",
-                variable=self.subtitle_var,
-                **checkbox_style,
-            ).grid(
-                row=3, column=0, columnspan=2, sticky="w", padx=22, pady=8
-            )
-            ctk.CTkCheckBox(
-                card,
-                text="Save thumbnails when available",
-                variable=self.thumbnail_var,
-                **checkbox_style,
-            ).grid(
-                row=4, column=0, columnspan=2, sticky="w", padx=22, pady=8
-            )
-
             cookie_label = ctk.CTkFrame(card, fg_color="transparent")
-            cookie_label.grid(row=5, column=0, sticky="nw", padx=22, pady=(22, 8))
+            cookie_label.grid(row=2, column=0, sticky="nw", padx=22, pady=(22, 8))
             ctk.CTkLabel(
                 cookie_label,
                 text="Cookies",
@@ -806,7 +832,7 @@ if GUI_AVAILABLE:
                 text_color=COLORS["text"],
                 font=self._font(12),
             )
-            self.cookies_box.grid(row=5, column=1, sticky="ew", padx=(8, 22), pady=(22, 8))
+            self.cookies_box.grid(row=3, column=1, sticky="ew", padx=(8, 22), pady=(22, 8))
             ctk.CTkLabel(
                 card,
                 text="Paste a Netscape cookies.txt export or a raw Cookie header for age-restricted/private videos.",
@@ -814,10 +840,10 @@ if GUI_AVAILABLE:
                 font=self._font(12),
                 wraplength=520,
                 justify="left",
-            ).grid(row=6, column=0, columnspan=2, sticky="w", padx=22, pady=(0, 12))
+            ).grid(row=4, column=0, columnspan=2, sticky="w", padx=22, pady=(0, 12))
 
             ctk.CTkLabel(card, text="Filename pattern", text_color=COLORS["text_secondary"], font=self._font(14)).grid(
-                row=7, column=0, sticky="w", padx=22, pady=(12, 8)
+                row=5, column=0, sticky="w", padx=22, pady=(12, 8)
             )
             ctk.CTkEntry(
                 card,
@@ -828,11 +854,11 @@ if GUI_AVAILABLE:
                 text_color=COLORS["text"],
                 font=self._font(13),
             ).grid(
-                row=7, column=1, sticky="ew", padx=(8, 22), pady=(12, 8)
+                row=5, column=1, sticky="ew", padx=(8, 22), pady=(12, 8)
             )
 
             ctk.CTkLabel(card, text="Ui Transparency", text_color=COLORS["text_secondary"], font=self._font(14)).grid(
-                row=8, column=0, sticky="w", padx=22, pady=(18, 8)
+                row=6, column=0, sticky="w", padx=22, pady=(18, 8)
             )
             opacity_slider = ctk.CTkSlider(
                 card,
@@ -845,16 +871,44 @@ if GUI_AVAILABLE:
                 progress_color=COLORS["accent"],
                 fg_color=COLORS["surface_muted"],
             )
-            opacity_slider.grid(row=8, column=1, sticky="ew", padx=(8, 22), pady=(18, 8))
+            opacity_slider.grid(row=6, column=1, sticky="ew", padx=(8, 22), pady=(18, 8))
+
+            # Duplicate skip
+            ctk.CTkLabel(card, text="Download", text_color=COLORS["text_secondary"], font=self._font(14)).grid(
+                row=7, column=0, sticky="w", padx=22, pady=(18, 8)
+            )
+            ctk.CTkCheckBox(
+                card,
+                text="Skip if file already exists",
+                variable=self.duplicate_skip_var,
+                **checkbox_style,
+            ).grid(row=7, column=1, sticky="w", padx=(8, 22), pady=(18, 8))
+
+            # Speed limit (Mbps)
+            ctk.CTkLabel(card, text="Speed Limit (Mbps)", text_color=COLORS["text_secondary"], font=self._font(14)).grid(
+                row=8, column=0, sticky="w", padx=22, pady=(4, 8)
+            )
+            ctk.CTkEntry(
+                card,
+                textvariable=self.speed_limit_var,
+                placeholder_text="e.g., 1, 10, 100",
+                corner_radius=12,
+                border_color=COLORS["border"],
+                fg_color=COLORS["input"],
+                text_color=COLORS["text"],
+                font=self._font(13),
+            ).grid(row=8, column=1, sticky="ew", padx=(8, 22), pady=(4, 18))
 
             self._primary_button(
                 card,
                 text="Update yt-dlp",
                 command=self.update_ytdlp,
                 height=42,
-            ).grid(row=10, column=0, columnspan=2, sticky="ew", padx=22, pady=(4, 22))
+            ).grid(row=9, column=0, columnspan=2, sticky="ew", padx=22, pady=(4, 22))
 
         def _build_activity_tab(self, parent):
+            if self._activity_tab_built:
+                return
             parent.configure(fg_color=COLORS["surface"])
             parent.grid_columnconfigure(0, weight=1)
             parent.grid_rowconfigure(0, weight=1)
@@ -918,7 +972,6 @@ if GUI_AVAILABLE:
                 value=initial_config.get("filename_pattern", self.filename_pattern_var.get())
             )
             playlist_var = ctk.BooleanVar(value=initial_config.get("download_playlist", self.playlist_var.get()))
-            subtitle_var = ctk.BooleanVar(value=initial_config.get("write_subtitles", self.subtitle_var.get()))
             thumbnail_var = ctk.BooleanVar(value=initial_config.get("write_thumbnail", self.thumbnail_var.get()))
 
             body = ctk.CTkScrollableFrame(
@@ -1000,7 +1053,7 @@ if GUI_AVAILABLE:
                 fg_color=COLORS["input"],
                 text_color=COLORS["text"],
                 font=self._font(13),
-            ).grid(row=8, column=0, columnspan=2, sticky="ew", pady=(0, 12))
+            ).grid(row=12, column=0, columnspan=2, sticky="ew", pady=(0, 12))
 
             checkbox_style = {
                 "corner_radius": 8,
@@ -1014,11 +1067,8 @@ if GUI_AVAILABLE:
             ctk.CTkCheckBox(body, text="Download playlist when present", variable=playlist_var, **checkbox_style).grid(
                 row=9, column=0, columnspan=2, sticky="w", pady=6
             )
-            ctk.CTkCheckBox(body, text="Save subtitles", variable=subtitle_var, **checkbox_style).grid(
-                row=10, column=0, columnspan=2, sticky="w", pady=6
-            )
             ctk.CTkCheckBox(body, text="Save thumbnails", variable=thumbnail_var, **checkbox_style).grid(
-                row=11, column=0, columnspan=2, sticky="w", pady=(6, 14)
+                row=10, column=0, columnspan=2, sticky="w", pady=(6, 14)
             )
 
             actions = ctk.CTkFrame(dialog, fg_color=COLORS["surface_muted"], corner_radius=0)
@@ -1036,7 +1086,6 @@ if GUI_AVAILABLE:
                     "format_preset": format_var.get(),
                     "filename_pattern": filename_pattern_var.get().strip() or DEFAULT_FILENAME_PATTERN,
                     "download_playlist": playlist_var.get(),
-                    "write_subtitles": subtitle_var.get(),
                     "write_thumbnail": thumbnail_var.get(),
                     "cookies_text": self.get_cookies_text(),
                 }
@@ -1126,7 +1175,7 @@ if GUI_AVAILABLE:
                 width=120,
                 anchor="e",
                 font=self._font(13, "bold"),
-                text_color=COLORS["accent"],
+                text_color=COLORS["text"],
             )
             status.grid(row=0, column=2, sticky="e", padx=(14, 16), pady=(16, 0))
 
@@ -1166,7 +1215,7 @@ if GUI_AVAILABLE:
                 text_color=COLORS["text"],
                 font=self._font(13, "bold"),
             )
-            retry_button.grid(row=0, column=2)
+            retry_button.grid_remove()
 
             self.download_jobs[job_id] = {
                 "config": config,
@@ -1178,8 +1227,7 @@ if GUI_AVAILABLE:
             }
 
             self.log(f"Queued: {config['urls'][0]}")
-            thread = threading.Thread(target=self.download_job_handler, args=(job_id,), daemon=True)
-            thread.start()
+            self._executor.submit(self.download_job_handler, job_id)
 
         def retry_download(self, job_id):
             job = self.download_jobs.get(job_id)
@@ -1203,10 +1251,10 @@ if GUI_AVAILABLE:
             job["status"].configure(text=status)
             if status == "Failed":
                 job["open_button"].grid_remove()
-                job["retry_button"].grid_configure(row=0, column=1, padx=0)
+                job["retry_button"].grid(row=0, column=1, padx=0)
             else:
                 job["open_button"].grid(row=0, column=1, padx=(0, 8))
-                job["retry_button"].grid_configure(row=0, column=2, padx=0)
+                job["retry_button"].grid_remove()
             self.status_label.configure(text=status)
 
         def download_job_handler(self, job_id):
@@ -1221,12 +1269,12 @@ if GUI_AVAILABLE:
                     format_preset=config["format_preset"],
                     filename_pattern=config["filename_pattern"],
                     download_playlist=config["download_playlist"],
-                    write_subtitles=config["write_subtitles"],
                     write_thumbnail=config["write_thumbnail"],
                     cookies_text=config.get("cookies_text", ""),
                     progress_callback=lambda percent: self._ui(self.update_job_progress, job_id, percent),
                     log_callback=self.safe_log,
                     phase_callback=lambda phase: self._ui(self.update_job_status, job_id, phase),
+                    speed_limit=self.speed_limit_var.get(),
                 )
                 self._ui(self.update_job_progress, job_id, 100)
                 self._ui(self.update_job_status, job_id, "Complete")
@@ -1283,7 +1331,7 @@ if GUI_AVAILABLE:
             return self.cookies_box.get("1.0", "end").strip()
 
         def open_readme(self):
-            self.open_folder(resource_path("README.md"))
+            webbrowser.open("https://github.com/debojitsantra/instad#cookies")
 
         def _set_theme(self, mode):
             ctk.set_appearance_mode(mode.lower())
@@ -1365,6 +1413,7 @@ if GUI_AVAILABLE:
         def _on_closing(self):
             # Handles the window closing event, saving cookies before destroying the app.
             self._save_cookies()
+            self._executor.shutdown(wait=False, cancel_futures=True)
             self.destroy()
 
         def _ui(self, callback, *args):
@@ -1478,7 +1527,6 @@ if GUI_AVAILABLE:
                     format_preset=self.format_var.get(),
                     filename_pattern=self.filename_pattern_var.get().strip() or DEFAULT_FILENAME_PATTERN,
                     download_playlist=self.playlist_var.get(),
-                    write_subtitles=self.subtitle_var.get(),
                     write_thumbnail=self.thumbnail_var.get(),
                     cookies_text=self.get_cookies_text(),
                     progress_callback=self.safe_progress,
@@ -1492,8 +1540,7 @@ if GUI_AVAILABLE:
 
         def update_ytdlp(self):
             self.tabs.set("Activity")
-            thread = threading.Thread(target=self._update_ytdlp_worker, daemon=True)
-            thread.start()
+            self._executor.submit(self._update_ytdlp_worker)
 
         def _update_ytdlp_worker(self):
             self.safe_phase("Updating")
