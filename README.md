@@ -108,13 +108,27 @@ python instad.py
 
 ## Cookies
 
-Use Settings -> Cookies for videos that require a signed-in account, such as age-restricted or private content.
+### Getting a Netscape `cookies.txt` file
 
-Paste either:
-- A Netscape `cookies.txt` export.
-- A raw browser `Cookie:` header copied from a signed-in request.
+Use a browser extension to export cookies in Netscape format, then paste the contents into Settings -> Cookies.
 
-Refresh the pasted cookies if a download fails with an authentication or age-restriction error.
+**Chromium-based browsers (Chrome, Brave, Edge, etc.)**
+1. Install [Get cookies.txt LOCALLY](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc) from the Chrome Web Store.
+2. Sign in to the site you want to download from (e.g. YouTube).
+3. Click the extension icon, select the current site, and export/copy the `cookies.txt` content.
+4. Paste it into Settings -> Cookies in Instad.
+
+**Firefox**
+1. Install [cookies.txt](https://addons.mozilla.org/en-US/firefox/addon/cookies-txt/) from Firefox Add-ons.
+2. Sign in to the site you want to download from.
+3. Click the extension icon to export the current tab's cookies as `cookies.txt`.
+4. Open the exported file and paste its contents into Settings -> Cookies in Instad.
+
+> [!TIP]
+> Export cookies again if a download starts failing with an authentication or age-restriction error — cookies expire or get invalidated after logout.
+
+> [!WARNING]
+> Cookies grant access to your signed-in session. Don't share your `cookies.txt` or paste it into untrusted apps.
 
 ---
 
